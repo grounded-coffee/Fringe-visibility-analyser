@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fringe Visibility Analyser</title>
+    <style>
+        body { font-family: "Segoe UI"; display: flex; margin: 0; background: #121212; color: white; height: 100vh; }
+        
+        .sidebar { 
+            width: 250px; 
+            background: #1a1a1a; 
+            padding: 20px; 
+            border-right: 1px solid #333; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 25px; 
+        }
+
+        .slider-group { display: flex; flex-direction: column; gap: 15px; }
+        
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: #e41910; }
+        
+        button { 
+            padding: 14px; 
+            background: #e41919; 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+            font-weight: bold; 
+            text-transform: uppercase;
+        }
+
+        .title { flex: 1; padding: 40px; }
+        h1 {border-bottom: 5px solid #e41919; padding-bottom: 10px; }
+        
+        
+        
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <h2>Lab Controls</h2>
+        
+        <div class="slider-group">
+            <label>Intensity I1: <span id="val-i1">x</span></label>
+            <input type="range" id="input-i1" min="0" max="10" value="5" step="0.1">
+        </div>
+
+        <div class="slider-group">
+            <label>Intensity I2: <span id="val-i2">y</span></label>
+            <input type="range" id="input-i2" min="0" max="10" value="5" step="0.1">
+        </div>
+
+        <button id="calculate button">Calculate</button>
+    </aside>
+
+    <main class="title">
+        <h1>Fringe Visibility Analyser</h1>
+        
+    
+    </main>
+
+</body>
+</html>
