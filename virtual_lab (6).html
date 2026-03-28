@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Virtual Lab — Signal & Fringe Console</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --lb: #0a0c10;
+  --pb: rgba(255,255,255,0.04);
+  --pbr: rgba(255,255,255,0.08);
+  --a1: #6ef0c8;
+  --a2: #a78bfa;
+  --a3: #fb923c;
+  --a4: #38bdf8;
+  --mu: rgba(255,255,255,0.36);
+  --tx: rgba(255,255,255,0.88);
+  --tx2: rgba(255,255,255,0.55);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{
+  background:#060709;
+  min-height:100vh;
+  font-family:'Syne',sans-serif;
+  color:var(--tx);
+}
+body{
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding:28px 18px 40px;
+  gap:0;
+}
+
+/* ── outer 3-col layout ── */
+.layout{
+  display:grid;
+  grid-template-columns:260px 1fr 260px;
+  grid-template-rows:auto auto;
+  gap:14px;
+  width:100%;
+  max-width:1280px;
+  align-items:start;
+}
+
+/* ── side panels ── */
+.side{
+  background:var(--lb);
+  border:0.5px solid var(--pbr);
+  border-radius:20px;
+  padding:22px 18px;
+  position:relative;
+  overflow:hidden;
+}
+.side::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,0.018) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,0.018) 1px,transparent 1px);
+  background-size:32px 32px;
+}
+.side-title{
+  font-size:10px;font-weight:700;letter-spacing:0.16em;
+  text-transform:uppercase;color:var(--mu);
+  margin-bottom:18px;display:block;
+}
+
+/* formula blocks */
+.formula-block{
+  margin-bottom:18px;
+  padding-bottom:18px;
+  border-bottom:0.5px solid var(--pbr);
+}
+.formula-block:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.formula-who{
+  font-size:10px;font-weight:600;letter-spacing:0.1em;
+  color:var(--a4);text-transform:uppercase;margin-bottom:5px;
+}
+.formula-name{
+  font-size:13px;font-weight:600;color:var(--tx);margin-bottom:8px;line-height:1.3;
+}
+.formula-eq{
+  font-family:'DM Mono',monospace;font-size:12px;
+  background:rgba(255,255,255,0.05);border:0.5px solid var(--pbr);
+  border-radius:8px;padding:8px 10px;color:var(--a1);
+  line-height:1.6;word-break:break-all;
+}
+.formula-desc{
+  font-size:11px;color:var(--tx2);margin-top:6px;line-height:1.6;
+}
+
+/* calc panel */
+.calc-row{
+  margin-bottom:14px;
+  padding-bottom:14px;
+  border-bottom:0.5px solid var(--pbr);
+}
+.calc-row:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.calc-label{
+  font-size:10px;font-weight:600;letter-spacing:0.1em;
+  color:var(--mu);text-transform:uppercase;margin-bottom:4px;
+}
+.calc-expr{
+  font-family:'DM Mono',monospace;font-size:11px;
+  color:var(--a2);line-height:1.6;
+}
+.calc-result{
+  font-family:'DM Mono',monospace;font-size:16px;font-weight:400;
+  margin-top:2px;
+}
+.calc-note{
+  font-size:11px;color:var(--tx2);margin-top:4px;line-height:1.5;
+}
+.verdict{
+  margin-top:16px;
+  padding:12px 14px;
+  border-radius:10px;
+  font-size:12px;line-height:1.6;
+  font-weight:600;
+  transition:background 0.4s,border-color 0.4s,color 0.4s;
+  border:0.5px solid;
+}
+.verdict.good{background:rgba(110,240,200,0.08);border-color:rgba(110,240,200,0.25);color:#6ef0c8;}
+.verdict.warn{background:rgba(251,146,60,0.08);border-color:rgba(251,146,60,0.3);color:#fb923c;}
+.verdict.bad {background:rgba(239,68,68,0.09);border-color:rgba(239,68,68,0.3);color:#f87171;}
+
+/* ── main lab panel ── */
+.lw{
+  background:var(--lb);
+  padding:28px 24px 36px;
+  border-radius:20px;
+  position:relative;
+  overflow:hidden;
+  border:0.5px solid rgba(255,255,255,0.06);
+}
+.bgr{
+  position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,0.022) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,0.022) 1px,transparent 1px);
+  background-size:40px 40px;
+}
+.orb{position:absolute;border-radius:50%;pointer-events:none;filter:blur(80px);opacity:0.35;}
+.o1{width:260px;height:260px;background:#6ef0c818;top:-60px;right:-40px;}
+.o2{width:160px;height:160px;background:#a78bfa14;bottom:10px;left:-30px;}
+.o3{width:140px;height:140px;background:#38bdf80e;bottom:70px;right:10px;}
+
+.hdr{
+  position:relative;z-index:1;
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:18px;
+}
+.htl{font-size:11px;font-weight:700;letter-spacing:0.15em;color:var(--mu);text-transform:uppercase;}
+.spill{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(110,240,200,0.08);
+  border:0.5px solid rgba(110,240,200,0.22);
+  border-radius:20px;padding:4px 12px;
+  font-family:'DM Mono',monospace;font-size:11px;color:var(--a1);letter-spacing:0.05em;
+}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--a1);animation:pu 2.2s ease-in-out infinite;}
+@keyframes pu{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.5;transform:scale(0.75);}}
+
+.vp{
+  position:relative;z-index:1;
+  background:var(--pb);border:0.5px solid var(--pbr);
+  border-radius:14px;padding:12px;margin-bottom:10px;overflow:hidden;
+  transition:border-color 0.4s;
+}
+.vp canvas{width:100%;display:block;border-radius:8px;}
+.vp-label{
+  font-size:9px;font-weight:700;letter-spacing:0.12em;
+  text-transform:uppercase;color:var(--mu);margin-bottom:8px;display:block;
+}
+
+/* snapshot button */
+.snap-row{
+  position:relative;z-index:1;
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;
+}
+.snap-btn{
+  font-family:'DM Mono',monospace;font-size:10px;font-weight:500;
+  letter-spacing:0.1em;text-transform:uppercase;
+  background:rgba(56,189,248,0.1);border:0.5px solid rgba(56,189,248,0.3);
+  border-radius:20px;padding:5px 14px;color:var(--a4);cursor:pointer;
+  transition:background 0.2s,border-color 0.2s;
+}
+.snap-btn:hover{background:rgba(56,189,248,0.18);border-color:rgba(56,189,248,0.5);}
+.snap-info{font-size:10px;color:var(--mu);font-family:'DM Mono',monospace;}
+
+.noise-badge{
+  position:absolute;top:10px;right:10px;
+  font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;font-weight:500;
+  padding:3px 10px;border-radius:20px;
+  background:rgba(251,146,60,0.12);border:0.5px solid rgba(251,146,60,0.35);
+  color:#fb923c;opacity:0;transition:opacity 0.4s;pointer-events:none;
+}
+
+.cg{
+  position:relative;z-index:1;
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;
+}
+.cc{
+  background:var(--pb);border:0.5px solid var(--pbr);
+  border-radius:14px;padding:14px 12px 12px;
+  transition:border-color 0.2s;position:relative;overflow:hidden;
+}
+.cc::before{
+  content:'';position:absolute;inset:0;border-radius:14px;
+  opacity:0;transition:opacity 0.3s;pointer-events:none;
+}
+.c1::before{background:rgba(110,240,200,0.12);}
+.c2::before{background:rgba(167,139,250,0.12);}
+.c3::before{background:rgba(251,146,60,0.12);}
+.c4::before{background:rgba(56,189,248,0.1);}
+.c1:hover{border-color:rgba(110,240,200,0.3);}
+.c2:hover{border-color:rgba(167,139,250,0.3);}
+.c3:hover{border-color:rgba(251,146,60,0.3);}
+.c4:hover{border-color:rgba(56,189,248,0.3);}
+.c1:hover::before,.c2:hover::before,.c3:hover::before,.c4:hover::before{opacity:1;}
+
+.cl{font-size:9px;font-weight:700;letter-spacing:0.13em;text-transform:uppercase;color:var(--mu);margin-bottom:7px;display:block;}
+.cv{font-family:'DM Mono',monospace;font-size:20px;font-weight:300;line-height:1;margin-bottom:10px;}
+.cu{font-size:10px;color:var(--mu);margin-left:3px;font-family:'DM Mono',monospace;}
+.c1 .cv{color:var(--a1);}.c2 .cv{color:var(--a2);}.c3 .cv{color:var(--a3);}.c4 .cv{color:var(--a4);}
+
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:99px;outline:none;cursor:pointer;}
+.c1 input[type=range]{background:linear-gradient(90deg,var(--a1) var(--v),rgba(255,255,255,0.1) var(--v));}
+.c2 input[type=range]{background:linear-gradient(90deg,var(--a2) var(--v),rgba(255,255,255,0.1) var(--v));}
+.c3 input[type=range]{background:linear-gradient(90deg,var(--a3) var(--v),rgba(255,255,255,0.1) var(--v));}
+.c4 input[type=range]{background:linear-gradient(90deg,var(--a4) var(--v),rgba(255,255,255,0.1) var(--v));}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;border:2px solid var(--lb);cursor:pointer;transition:transform 0.15s;}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.28);}
+.c1 input[type=range]::-webkit-slider-thumb{background:var(--a1);}
+.c2 input[type=range]::-webkit-slider-thumb{background:var(--a2);}
+.c3 input[type=range]::-webkit-slider-thumb{background:var(--a3);}
+.c4 input[type=range]::-webkit-slider-thumb{background:var(--a4);}
+
+.mr{
+  position:relative;z-index:1;
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:10px;
+}
+.mb{background:var(--pb);border:0.5px solid var(--pbr);border-radius:10px;padding:9px 11px;}
+.ml{font-size:9px;color:var(--mu);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;}
+.mt{height:3px;background:rgba(255,255,255,0.07);border-radius:99px;overflow:hidden;}
+.mf{height:100%;border-radius:99px;transition:width 0.15s ease;}
+.m1 .mf{background:linear-gradient(90deg,rgba(110,240,200,0.5),var(--a1));}
+.m2 .mf{background:linear-gradient(90deg,rgba(167,139,250,0.5),var(--a2));}
+.m3 .mf{background:linear-gradient(90deg,rgba(251,146,60,0.5),var(--a3));}
+.m4 .mf{background:linear-gradient(90deg,rgba(56,189,248,0.5),var(--a4));}
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ══ LEFT PANEL — Formulas ══ -->
+  <div class="side">
+    <span class="side-title">Formulas &amp; Origins</span>
+
+    <div class="formula-block">
+      <div class="formula-who">Thomas Young · 1801</div>
+      <div class="formula-name">Double-Slit Interference Intensity</div>
+      <div class="formula-eq">I = I₁ + I₂ + 2√(I₁·I₂)·cos(δ)</div>
+      <div class="formula-desc">δ = 2πx/w — phase difference from path length. Constructive where cos(δ)=1, destructive where cos(δ)=−1.</div>
+    </div>
+
+    <div class="formula-block">
+      <div class="formula-who">Albert Michelson · 1890</div>
+      <div class="formula-name">Fringe Visibility (Contrast)</div>
+      <div class="formula-eq">V = (I_max − I_min) / (I_max + I_min)</div>
+      <div class="formula-desc">Simplified to V = 2√(I₁·I₂)/(I₁+I₂). Equals 1.0 when both sources are equal. Noise degrades V toward 0.</div>
+    </div>
+
+    <div class="formula-block">
+      <div class="formula-who">Dennis Gabor · 1946</div>
+      <div class="formula-name">Coherence &amp; Noise Degradation</div>
+      <div class="formula-eq">V_eff = V · e^(−σ²/2)</div>
+      <div class="formula-desc">σ = phase noise std. deviation. Exponential decay: small noise barely hurts, large noise obliterates fringes.</div>
+    </div>
+
+    <div class="formula-block">
+      <div class="formula-who">Wiener · 1930s</div>
+      <div class="formula-name">Signal-to-Noise Ratio</div>
+      <div class="formula-eq">SNR = (I₁ + I₂) / σ_noise</div>
+      <div class="formula-desc">When SNR &lt; 1, noise dominates signal. Fringe pattern becomes indistinguishable from random static.</div>
+    </div>
+
+    <div class="formula-block">
+      <div class="formula-who">Fix: Filtering</div>
+      <div class="formula-name">Proposed Solution</div>
+      <div class="formula-eq">I_clean = I * G(σ_filter)</div>
+      <div class="formula-desc">Apply a Gaussian low-pass filter matched to fringe spatial frequency. Reduces σ, restores fringe visibility.</div>
+    </div>
+  </div>
+
+  <!-- ══ CENTRE — Main Lab ══ -->
+  <div class="lw">
+    <div class="bgr"></div>
+    <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
+
+    <div class="hdr">
+      <span class="htl">Virtual Lab — Signal &amp; Fringe Console</span>
+      <div class="spill"><div class="sdot"></div>LIVE</div>
+    </div>
+
+    <!-- Wave oscilloscope (always live) -->
+    <span class="vp-label" style="position:relative;z-index:1;">Live waveform</span>
+    <div class="vp" style="margin-bottom:10px;">
+      <canvas id="wc" width="800" height="110"></canvas>
+    </div>
+
+    <!-- Fringe snapshot panel -->
+    <div class="snap-row">
+      <span class="snap-info">Fringe pattern — <span id="snapStatus" style="color:var(--a4);">snapshot frozen</span></span>
+      <button class="snap-btn" id="snapBtn">⬤ Capture Snapshot</button>
+    </div>
+    <div class="vp" id="fringePanel" style="margin-bottom:14px;">
+      <canvas id="fc" width="800" height="110"></canvas>
+      <div class="noise-badge" id="noiseBadge">COHERENCE LOST</div>
+    </div>
+
+    <!-- Sliders -->
+    <div class="cg">
+      <div class="cc c1">
+        <span class="cl">Intensity I</span>
+        <div class="cv" id="v1">50<span class="cu">%</span></div>
+        <input type="range" id="s1" min="0" max="100" value="50" step="1">
+      </div>
+      <div class="cc c2">
+        <span class="cl">Intensity II</span>
+        <div class="cv" id="v2">50<span class="cu">%</span></div>
+        <input type="range" id="s2" min="0" max="100" value="50" step="1">
+      </div>
+      <div class="cc c3">
+        <span class="cl">Noise Level</span>
+        <div class="cv" id="v3">20<span class="cu">dB</span></div>
+        <input type="range" id="s3" min="0" max="100" value="20" step="1">
+      </div>
+      <div class="cc c4">
+        <span class="cl">Fringe Width</span>
+        <div class="cv" id="v4">5<span class="cu">px</span></div>
+        <input type="range" id="s4" min="1" max="40" value="5" step="1">
+      </div>
+    </div>
+
+    <!-- Meters -->
+    <div class="mr">
+      <div class="mb m1"><div class="ml">Signal A</div><div class="mt"><div class="mf" id="m1" style="width:50%"></div></div></div>
+      <div class="mb m2"><div class="ml">Signal B</div><div class="mt"><div class="mf" id="m2" style="width:50%"></div></div></div>
+      <div class="mb m3"><div class="ml">Noise Floor</div><div class="mt"><div class="mf" id="m3" style="width:20%"></div></div></div>
+      <div class="mb m4"><div class="ml">Fringe Width</div><div class="mt"><div class="mf" id="m4" style="width:12%"></div></div></div>
+    </div>
+
+    <!-- verdict — right here, no scroll needed -->
+    <div class="verdict good" id="verdictBox" style="position:relative;z-index:1;margin-top:14px;font-size:14px;line-height:1.65;padding:14px 18px;">
+      Fringes clearly visible. System is coherent. Increase noise to demonstrate degradation.
+    </div>
+  </div>
+
+  <!-- ══ RIGHT PANEL — Live Calculation ══ -->
+  <div class="side">
+    <span class="side-title">Live Calculation</span>
+
+    <div class="calc-row">
+      <div class="calc-label">Input values</div>
+      <div class="calc-expr" id="cr-inputs">I₁=0.50, I₂=0.50<br>noise=20%, w=5px</div>
+    </div>
+
+    <div class="calc-row">
+      <div class="calc-label">Peak intensity (max)</div>
+      <div class="calc-expr">I_max = I₁ + I₂ + 2√(I₁·I₂)</div>
+      <div class="calc-result" style="color:var(--a1);" id="cr-imax">2.000</div>
+      <div class="calc-note">Both waves fully constructive. This is the bright fringe peak.</div>
+    </div>
+
+    <div class="calc-row">
+      <div class="calc-label">Dark fringe (min)</div>
+      <div class="calc-expr">I_min = I₁ + I₂ − 2√(I₁·I₂)</div>
+      <div class="calc-result" style="color:var(--a2);" id="cr-imin">0.000</div>
+      <div class="calc-note">Fully destructive. Perfect dark band when sources are equal.</div>
+    </div>
+
+    <div class="calc-row">
+      <div class="calc-label">Theoretical visibility</div>
+      <div class="calc-expr">V = 2√(I₁·I₂) / (I₁+I₂)</div>
+      <div class="calc-result" style="color:var(--a4);" id="cr-vth">1.000</div>
+      <div class="calc-note">Max contrast. Equals 1.0 only when I₁ = I₂.</div>
+    </div>
+
+    <div class="calc-row">
+      <div class="calc-label">Noise phase std-dev (σ)</div>
+      <div class="calc-expr">σ = noise% × π × 2.5</div>
+      <div class="calc-result" style="color:var(--a3);" id="cr-sigma">1.571</div>
+      <div class="calc-note">In radians. Small σ → tiny blur. Large σ → fringes wash out.</div>
+    </div>
+
+    <div class="calc-row">
+      <div class="calc-label">Effective visibility</div>
+      <div class="calc-expr">V_eff = V · e^(−σ²/2)</div>
+      <div class="calc-result" style="color:var(--a1);" id="cr-veff">0.287</div>
+      <div class="calc-note">What you actually see. Noise kills this exponentially.</div>
+    </div>
+
+    <div class="calc-row">
+      <div class="calc-label">SNR</div>
+      <div class="calc-expr">SNR = (I₁+I₂) / (noise% × 2)</div>
+      <div class="calc-result" style="color:var(--a4);" id="cr-snr">2.50</div>
+      <div class="calc-note">Below 1.0 = noise dominates. Fringes undetectable.</div>
+    </div>
+
+  </div>
+
+</div><!-- end layout -->
+
+<script>
+// ── canvases ──────────────────────────────────────────────────────────────
+const wc   = document.getElementById('wc'),   wctx = wc.getContext('2d');
+const fc   = document.getElementById('fc'),   fctx = fc.getContext('2d');
+const fringePanel = document.getElementById('fringePanel');
+const noiseBadge  = document.getElementById('noiseBadge');
+const snapBtn     = document.getElementById('snapBtn');
+const snapStatus  = document.getElementById('snapStatus');
+
+// offscreen for accumulator
+const oc = document.createElement('canvas'); oc.width=fc.width; oc.height=fc.height;
+const octx = oc.getContext('2d');
+// temp single frame
+const tc = document.createElement('canvas'); tc.width=fc.width; tc.height=fc.height;
+const tctx = tc.getContext('2d');
+
+let int1=50, int2=50, noise=20, fringe=5, t=0;
+let staticFringeDirty=true;
+// snapshot state: null = no snapshot yet, else ImageData
+let snapshot = null;
+let snapshotNoise = null;
+let snapshotTaken = false;
+
+// ── slider wiring ─────────────────────────────────────────────────────────
+function upSlider(sl,card){
+  const p=(sl.value-sl.min)/(sl.max-sl.min)*100;
+  card.style.setProperty('--v',p+'%');
+}
+const s1=document.getElementById('s1'),s2=document.getElementById('s2'),
+      s3=document.getElementById('s3'),s4=document.getElementById('s4');
+function gc(id){return document.getElementById(id).closest('.cc');}
+[s1,s2,s3,s4].forEach(s=>upSlider(s,gc(s.id)));
+
+s1.addEventListener('input',()=>{int1=+s1.value;document.getElementById('v1').innerHTML=int1+'<span class="cu">%</span>';document.getElementById('m1').style.width=int1+'%';upSlider(s1,gc('s1'));updateCalc();staticFringeDirty=true;});
+s2.addEventListener('input',()=>{int2=+s2.value;document.getElementById('v2').innerHTML=int2+'<span class="cu">%</span>';document.getElementById('m2').style.width=int2+'%';upSlider(s2,gc('s2'));updateCalc();staticFringeDirty=true;});
+s3.addEventListener('input',()=>{noise=+s3.value;document.getElementById('v3').innerHTML=noise+'<span class="cu">dB</span>';document.getElementById('m3').style.width=noise+'%';upSlider(s3,gc('s3'));octx.clearRect(0,0,oc.width,oc.height);updateCalc();staticFringeDirty=true;});
+s4.addEventListener('input',()=>{fringe=+s4.value;document.getElementById('v4').innerHTML=fringe+'<span class="cu">px</span>';document.getElementById('m4').style.width=Math.round((fringe/40)*100)+'%';upSlider(s4,gc('s4'));updateCalc();staticFringeDirty=true;});
+
+// ── snapshot button ───────────────────────────────────────────────────────
+snapBtn.addEventListener('click',()=>{
+  // Render one clean fringe frame at current state then freeze it
+  octx.clearRect(0,0,oc.width,oc.height);
+  renderFringeFrame(t*0.6);
+  octx.globalAlpha=1;
+  octx.drawImage(tc,0,0);
+  snapshot = octx.getImageData(0,0,oc.width,oc.height);
+  snapshotNoise = noise;
+  snapshotTaken = true;
+  snapStatus.textContent = 'snapshot frozen @ noise='+noise+'dB';
+  snapStatus.style.color = '#6ef0c8';
+});
+
+// ── right panel live calc ─────────────────────────────────────────────────
+function updateCalc(){
+  const A1=int1/100, A2=int2/100, n=noise/100, fw=fringe;
+  const sqrtA1A2 = Math.sqrt(A1*A2);
+  const imax = A1+A2+2*sqrtA1A2;
+  const imin = Math.max(0,A1+A2-2*sqrtA1A2);
+  const vth  = (A1+A2)>0 ? (2*sqrtA1A2)/(A1+A2) : 0;
+  const sigma= n*Math.PI*0.55;
+  const veff = vth*Math.exp(-sigma*sigma/2);
+  const snr  = n>0 ? (A1+A2)/(n*2) : 999;
+
+  document.getElementById('cr-inputs').textContent =
+    'I₁='+A1.toFixed(2)+', I₂='+A2.toFixed(2)+'\nnoise='+noise+'%, w='+fw+'px';
+  document.getElementById('cr-imax').textContent = imax.toFixed(3);
+  document.getElementById('cr-imin').textContent = imin.toFixed(3);
+  document.getElementById('cr-vth').textContent  = vth.toFixed(3);
+  document.getElementById('cr-sigma').textContent= sigma.toFixed(3)+'rad';
+  document.getElementById('cr-veff').textContent = veff.toFixed(3);
+  document.getElementById('cr-snr').textContent  = snr>99?'∞':snr.toFixed(2);
+
+  const vb = document.getElementById('verdictBox');
+  if(veff>0.75){
+    vb.className='verdict good';
+    vb.textContent='Fringes clearly visible (V_eff='+veff.toFixed(2)+'). System is coherent. Try raising noise to see degradation.';
+  } else if(veff>0.35){
+    vb.className='verdict warn';
+    vb.textContent='Fringes degraded (V_eff='+veff.toFixed(2)+'). Noise is significant. Apply Gaussian low-pass filter to recover contrast.';
+  } else {
+    vb.className='verdict bad';
+    vb.textContent='Fringes lost (V_eff='+veff.toFixed(2)+'). SNR='+(snr>99?'∞':snr.toFixed(2))+'. Signal buried in noise. Filtering & shielding required.';
+  }
+}
+updateCalc();
+
+// ── wave oscilloscope (always animated) ───────────────────────────────────
+function drawWave(){
+  const W=wc.width,H=wc.height;
+  wctx.clearRect(0,0,W,H);
+  const a1=(int1/100)*(H*0.34),a2=(int2/100)*(H*0.24),n=(noise/100)*15;
+
+  function grad(r,g,b){
+    const gr=wctx.createLinearGradient(0,0,W,0);
+    gr.addColorStop(0,`rgba(${r},${g},${b},0)`);
+    gr.addColorStop(0.5,`rgba(${r},${g},${b},0.75)`);
+    gr.addColorStop(1,`rgba(${r},${g},${b},0)`);
+    return gr;
+  }
+  wctx.beginPath();
+  for(let x=0;x<=W;x++){
+    const ny=(Math.random()-0.5)*n;
+    const y=H/2+Math.sin((x/W)*Math.PI*2*3+t)*a1+ny;
+    x===0?wctx.moveTo(x,y):wctx.lineTo(x,y);
+  }
+  wctx.strokeStyle=grad(110,240,200);wctx.lineWidth=2;wctx.stroke();
+
+  wctx.beginPath();
+  for(let x=0;x<=W;x++){
+    const ny=(Math.random()-0.5)*n;
+    const y=H/2+Math.sin((x/W)*Math.PI*2*5+t*1.3+1)*a2+ny;
+    x===0?wctx.moveTo(x,y):wctx.lineTo(x,y);
+  }
+  wctx.strokeStyle=grad(167,139,250);wctx.lineWidth=1.5;wctx.stroke();
+
+  if(noise>5){
+    wctx.beginPath();
+    for(let x=0;x<=W;x++){
+      const ny=(Math.random()-0.5)*n*2.2;
+      const y=H/2+Math.sin((x/W)*Math.PI*2*1.5+t*0.7+2.5)*(n*0.55)+ny;
+      x===0?wctx.moveTo(x,y):wctx.lineTo(x,y);
+    }
+    wctx.strokeStyle=grad(251,146,60);wctx.lineWidth=1;wctx.stroke();
+  }
+}
+
+// ── render one clean fringe frame into tc at a given phase ────────────────
+function renderFringeFrame(phase){
+  const W=tc.width,H=tc.height;
+  const A1=int1/100,A2=int2/100,fw=Math.max(1,fringe);
+  tctx.clearRect(0,0,W,H);
+  for(let x=0;x<W;x++){
+    const I=A1*A1+A2*A2+2*A1*A2*Math.cos((2*Math.PI*x/fw)-phase);
+    const maxI=(A1+A2)*(A1+A2)||1;
+    const b=Math.max(0,Math.min(1,I/maxI));
+    const r=Math.round(110*b+56*(1-b));
+    const g=Math.round(240*b+189*(1-b));
+    const bl=Math.round(200*b+248*(1-b));
+    tctx.fillStyle=`rgba(${r},${g},${bl},${0.12+b*0.85})`;
+    tctx.fillRect(x,0,1,H);
+  }
+}
+
+// ── fringe panel: snapshot + live blur overlay comparison ─────────────────
+function drawFringe(){
+  const W=fc.width,H=fc.height;
+  const noiseN=noise/100;
+  fctx.clearRect(0,0,W,H);
+
+  if(!snapshotTaken){
+    // Static noisy fringe — accumulate ghost frames once, redraw only on slider change
+    if(staticFringeDirty){
+      octx.clearRect(0,0,W,H);
+      const ghostCount=Math.round(1+noiseN*18);
+      const maxJitter=noiseN*Math.PI*3.5;
+      octx.globalAlpha=Math.min(1,1.4/ghostCount);
+      for(let i=0;i<ghostCount;i++){
+        renderFringeFrame((Math.random()-0.5)*2*maxJitter);
+        octx.drawImage(tc,0,0);
+      }
+      octx.globalAlpha=1;
+      // dark overlay baked in
+      octx.fillStyle='rgba(10,12,16,0.10)';
+      octx.fillRect(0,0,W,H);
+      // red grain at high noise
+      if(noiseN>0.75){
+        const gs=(noiseN-0.75)/0.25;
+        const id2=octx.createImageData(W,H);
+        for(let i=0;i<id2.data.length;i+=4){
+          const v=Math.random()*255;
+          id2.data[i]=v;id2.data[i+1]=v*0.2;id2.data[i+2]=v*0.08;
+          id2.data[i+3]=gs*70;
+        }
+        octx.putImageData(id2,0,0);
+      }
+      staticFringeDirty=false;
+    }
+    fctx.drawImage(oc,0,0);
+    snapStatus.textContent='no snapshot — press Capture';
+    snapStatus.style.color='rgba(255,255,255,0.35)';
+  } else {
+    // ── SPLIT VIEW: left = clean snapshot, right = same + current noise blur ──
+    const splitX = Math.floor(W/2);
+
+    // LEFT half — original snapshot, untouched
+    fctx.putImageData(snapshot,0,0,0,0,splitX,H);
+
+    // RIGHT half — render noisy version live
+    const ghostCount=Math.round(1+noiseN*18);
+    const maxJitter=noiseN*Math.PI*3.5;
+    // render into a fresh temp accumulator
+    const rc=document.createElement('canvas');rc.width=W;rc.height=H;
+    const rctx=rc.getContext('2d');
+    rctx.clearRect(0,0,W,H);
+    // base clean frame
+    renderFringeFrame(snapshotNoise/100*Math.PI*2.5);
+    rctx.globalAlpha=0.4;
+    rctx.drawImage(tc,0,0);
+    // ghost overlays
+    rctx.globalAlpha=Math.min(1,1.2/Math.max(1,ghostCount));
+    for(let i=0;i<ghostCount;i++){
+      renderFringeFrame(snapshotNoise/100*Math.PI*2.5+(Math.random()-0.5)*2*maxJitter);
+      rctx.drawImage(tc,0,0);
+    }
+    rctx.globalAlpha=1;
+    // red static grain at high noise
+    if(noiseN>0.75){
+      const gs=(noiseN-0.75)/0.25;
+      const id2=rctx.createImageData(W,H);
+      for(let i=0;i<id2.data.length;i+=4){
+        const v=Math.random()*255;
+        id2.data[i]=v;id2.data[i+1]=v*0.2;id2.data[i+2]=v*0.08;
+        id2.data[i+3]=gs*70;
+      }
+      rctx.putImageData(id2,0,0);
+    }
+    // blit right half only
+    fctx.drawImage(rc,splitX,0,splitX,H,splitX,0,splitX,H);
+
+    // divider line
+    fctx.strokeStyle='rgba(255,255,255,0.2)';
+    fctx.lineWidth=1;
+    fctx.setLineDash([4,4]);
+    fctx.beginPath();fctx.moveTo(splitX,0);fctx.lineTo(splitX,H);fctx.stroke();
+    fctx.setLineDash([]);
+
+    // half-labels
+    fctx.font='500 10px "DM Mono",monospace';
+    fctx.letterSpacing='0.08em';
+    fctx.fillStyle='rgba(110,240,200,0.7)';
+    fctx.fillText('CLEAN  noise='+snapshotNoise+'dB',10,H-10);
+    fctx.fillStyle= noiseN>0.5?'rgba(251,146,60,0.8)':'rgba(56,189,248,0.65)';
+    fctx.fillText('NOISY  noise='+noise+'dB',splitX+10,H-10);
+  }
+
+  // dark overlay
+  fctx.fillStyle='rgba(10,12,16,0.10)';
+  fctx.fillRect(0,0,W,H);
+
+  // visibility readout top-right
+  const A1=int1/100,A2=int2/100,n=noise/100;
+  const vth=(A1+A2)>0?(2*Math.sqrt(A1*A2))/(A1+A2):0;
+  const sigma=n*Math.PI*0.55;
+  const veff=Math.max(0,vth*Math.exp(-sigma*sigma/2));
+  fctx.font='500 11px "DM Mono",monospace';
+  fctx.letterSpacing='0.08em';
+  fctx.fillStyle=n>0.82?`rgba(251,146,60,${0.5+n*0.4})`:'rgba(56,189,248,0.65)';
+  fctx.fillText('V_eff = '+(veff*100).toFixed(0)+'%',W-115,H-10);
+
+  // panel border
+  const bs=Math.max(0,(n-0.6)/0.4);
+  fringePanel.style.borderColor=bs>0?`rgba(251,146,60,${0.12+bs*0.6})`:'rgba(255,255,255,0.08)';
+  noiseBadge.style.opacity=n>0.88?'1':'0';
+}
+
+// ── main loop ─────────────────────────────────────────────────────────────
+function loop(){
+  drawWave();
+  drawFringe();
+  t+=0.022;
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
