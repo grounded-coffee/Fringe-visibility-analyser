@@ -1,0 +1,2 @@
+Fringe Visibility Analyser
+The Fringe Visibility Analyser is a web-based laboratory environment designed to simulate and analyze optical interference patterns (fringes) under varying environmental conditions. This tool demonstrates how vibrational and phase noise degrade signal coherence and how mathematical filters can be used to recover visibility.
